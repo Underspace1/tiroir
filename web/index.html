@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Tiroir</title>
+  <link rel="icon" href="icon.svg">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <script src="/node_modules/lucide/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+  <!-- "Goo": blur then sharpen the alpha so nearby blobs melt into each other -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <filter id="goo" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur in="SourceGraphic" stdDeviation="6" result="b"/><feColorMatrix in="b" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9"/></filter>
+    <filter id="goo-dots" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b"/><feColorMatrix in="b" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7"/></filter>
+  </svg>
+  <aside class="side">
+    <div class="brand"><span class="mark"></span>Tiroir</div>
+    <button class="btn primary wide" id="importBtn"><span data-i="Upload"></span>Importer</button>
+    <nav class="group">
+      <a data-view="folder:root"><span data-i="HardDrive"></span>Mon Drive</a>
+      <a data-view="recent"><span data-i="Clock"></span>Récents</a>
+      <a data-view="starred"><span data-i="Star"></span>Favoris</a>
+      <a data-view="shared"><span data-i="Users"></span>Partagés avec moi</a>
+      <a data-view="trash"><span data-i="Trash2"></span>Corbeille</a>
+    </nav>
+    <nav class="group" id="drives" hidden><h6>Drives partagés</h6></nav>
+    <nav class="group">
+      <h6>Médias</h6>
+      <a data-view="type:image"><span data-i="Image"></span>Photos</a>
+      <a data-view="type:video"><span data-i="Film"></span>Vidéos</a>
+      <a data-view="type:audio"><span data-i="Music"></span>Audio</a>
+      <h6>Documents</h6>
+      <a data-view="type:pdf"><span data-i="FileText"></span>PDF</a>
+      <a data-view="type:doc"><span data-i="FileText"></span>Textes</a>
+      <a data-view="type:sheet"><span data-i="Sheet"></span>Tableurs</a>
+      <a data-view="type:slide"><span data-i="Presentation"></span>Présentations</a>
+      <a data-view="type:archive"><span data-i="Archive"></span>Archives</a>
+      <h6>Google</h6>
+      <a data-view="gmail"><span data-i="Mail"></span>Gmail<span class="badge2" id="mailBadge" hidden></span></a>
+      <a data-view="calendar"><span data-i="CalendarDays"></span>Agenda</a>
+      <a data-view="tasks"><span data-i="ListChecks"></span>Tâches</a>
+    </nav>
+    <div class="jobs" id="jobs"></div>
+    <div class="foot">
+      <h6>Mes Drives</h6>
+      <div class="accts" id="accts"></div>
+      <div class="quota" id="quota"></div>
+      <div class="footrow">
+        <button class="add" id="addDrive"><span data-i="Plus"></span>Ajouter un Drive</button>
+        <button class="ib" id="acct" title="Réglages" data-i="Settings"></button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main" id="main">
+    <header class="bar">
+      <button class="ib" id="back" title="Précédent (Alt+←)" data-i="ChevronLeft"></button>
+      <button class="ib" id="fwd" title="Suivant (Alt+→)" data-i="ChevronRight"></button>
+      <nav class="crumbs" id="crumbs"></nav>
+      <label class="search"><span data-i="Search"></span><input id="q" placeholder="Rechercher dans Drive" spellcheck="false" autocomplete="off"><kbd>Ctrl K</kbd></label>
+      <button class="ib" id="gemBtn" title="Gemini (Ctrl+G)" data-i="Bot"></button>
+      <button class="ib" id="infoBtn" title="Détails (Ctrl+I)" data-i="PanelRight"></button>
+    </header>
+
+    <section class="head">
+      <div class="title">
+        <h1 id="title">Mon Drive</h1>
+        <p id="meta"></p>
+      </div>
+      <div class="controls">
+        <div class="chips" id="chips"><div class="cb"></div></div>
+        <span class="grow"></span>
+        <button class="btn tog" id="mine" title="Afficher seulement les fichiers dont tu es propriétaire (masque ce que d'autres t'ont partagé)" hidden><span data-i="UserCheck"></span>Mes fichiers</button>
+        <select id="sort" title="Trier">
+          <option value="name:1">Nom A → Z</option>
+          <option value="name:-1">Nom Z → A</option>
+          <option value="modifiedTime:-1">Plus récents</option>
+          <option value="modifiedTime:1">Plus anciens</option>
+          <option value="size:-1">Plus lourds</option>
+          <option value="size:1">Plus légers</option>
+        </select>
+        <div class="seg" id="mode">
+          <button data-mode="gallery" title="Galerie" data-i="Images"></button>
+          <button data-mode="grid" title="Grille" data-i="LayoutGrid"></button>
+          <button data-mode="list" title="Liste" data-i="List"></button>
+        </div>
+        <input type="range" id="zoom" min="120" max="320" step="10" title="Taille des vignettes">
+      </div>
+    </section>
+
+    <section class="svc" id="svc" hidden></section>
+    <div class="scroller" id="scroller" tabindex="0"><div class="canvas" id="canvas"></div><div class="empty" id="empty" hidden></div></div>
+    <div class="selbar" id="selbar" hidden></div>
+    <div class="dropzone" id="dropzone" hidden><span id="dropLabel"></span></div>
+
+    <aside class="drawer" id="drawer" hidden>
+      <div class="tabs">
+        <button data-tab="info" class="on">Détails</button>
+        <button data-tab="gemini">Gemini</button>
+        <span class="grow"></span>
+        <button class="ib" id="closeDrawer" data-i="X" title="Fermer"></button>
+      </div>
+      <section class="info" id="info"></section>
+      <section class="gemini" id="gemini" hidden>
+        <div class="msgs" id="msgs"></div>
+        <div class="compose">
+          <div class="attach" id="attach"></div>
+          <textarea id="prompt" rows="3" placeholder="Pose une question sur tes fichiers…"></textarea>
+          <div class="crow">
+            <label class="chk" title="Gemini peut ranger tes fichiers, créer des Docs/Sheets/Slides, lire et préparer des mails, gérer l'agenda et les tâches. Il demande avant d'envoyer un mail ou de supprimer."><input type="checkbox" id="agent"> Mode agent</label>
+            <button class="btn primary" id="send"><span data-i="Send"></span>Envoyer</button>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <div class="viewer" id="viewer" hidden></div>
+  <div class="menu" id="menu" hidden></div>
+  <div class="modal" id="modal" hidden></div>
+  <div class="toast" id="toast" hidden></div>
+  <input type="file" id="filePick" multiple hidden>
+  <input type="file" id="dirPick" webkitdirectory hidden>
+
+  <script src="app.js"></script>
+</body>
+</html>

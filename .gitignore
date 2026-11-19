@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.log
+*.part
+# never commit a real configuration (Google sign-ins, client secret)
+config.json
+client_secret*.json
